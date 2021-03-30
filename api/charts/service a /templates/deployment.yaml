@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "service-a.fullname" . }}
+  labels:
+    {{- include "service-a.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "service-a.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "service-a.selectorLabels" . | nindent 8 }}
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecret }}
+      serviceAccountName: {{ include "service-a.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:   
+            - name: SERVICES 
+              value: {{ .Values.service-a.SERVICES }}
+            - name: SERVICEDIR
+              value: {{ .Values.service-a.SERVICEDIR }}
+            - name: TRANSPORTER
+              value: {{ .Values.service-a.TRANSPORTER }}
+            - name: NAMESPACE
+              value: {{ .Values.service-a.NAMESPACE }}
+            - name: service-a
+              value: {{ .Values.beer.LOGLEVEL }}
+          ports:
+            - name: http
+              containerPort: 3002
+              protocol: TCP
+          livenessProbe:
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            httpGet:
+              path: /
+              port: 3002
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
